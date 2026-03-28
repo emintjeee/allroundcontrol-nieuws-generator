@@ -637,6 +637,36 @@ function arc_nieuws_instellingen_pagina() {
                     </div>
                 </div>
 
+                <!-- Updater debug -->
+                <?php if ( ! empty( $settings['github_repo'] ) ) :
+                    $dbg_installed  = ARC_NIEUWS_VERSION;
+                    $dbg_cached     = get_transient( 'arc_nieuws_github_release' );
+                    $dbg_github_ver = $dbg_cached ? ltrim( $dbg_cached['tag_name'] ?? '', 'vV' ) : '(geen cache)';
+                    $dbg_zip        = $dbg_cached ? 'https://github.com/' . $settings['github_repo'] . '/archive/refs/tags/' . ( $dbg_cached['tag_name'] ?? '' ) . '.zip' : '—';
+                    $dbg_wp         = get_site_transient( 'update_plugins' );
+                    $dbg_wp_ver     = $dbg_wp->checked[ ARC_NIEUWS_PLUGIN_SLUG ] ?? '(niet gevonden)';
+                ?>
+                <div class="arc-card">
+                    <div class="arc-card-header">
+                        <div class="arc-card-icon" style="background:#f1f5f9;">🔍</div>
+                        <h2>Update debug</h2>
+                    </div>
+                    <div class="arc-card-body" style="font-size:12px;font-family:monospace;line-height:1.8;">
+                        <div><strong>Geïnstalleerd:</strong> <?php echo esc_html( $dbg_installed ); ?></div>
+                        <div><strong>WP ziet versie:</strong> <?php echo esc_html( $dbg_wp_ver ); ?></div>
+                        <div><strong>GitHub (cache):</strong> <?php echo esc_html( $dbg_github_ver ); ?></div>
+                        <div style="word-break:break-all;"><strong>ZIP URL:</strong><br><?php echo esc_html( $dbg_zip ); ?></div>
+                        <?php if ( ! $dbg_cached ) : ?>
+                            <p style="color:#dc2626;margin-top:8px;">⚠ Geen GitHub-cache — klik "Forceer update check" hierboven.</p>
+                        <?php elseif ( version_compare( $dbg_github_ver, $dbg_installed, '<=' ) ) : ?>
+                            <p style="color:#dc2626;margin-top:8px;">⚠ GitHub-versie is niet hoger dan geïnstalleerd — WordPress zal geen update tonen.</p>
+                        <?php else : ?>
+                            <p style="color:#15803d;margin-top:8px;">✓ Update beschikbaar (<?php echo esc_html( $dbg_installed ); ?> → <?php echo esc_html( $dbg_github_ver ); ?>)</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+
             </div>
         </div><!-- /grid -->
     </div>
