@@ -3,7 +3,7 @@
  * Plugin Name:       AllroundControl Nieuws Generator
  * Plugin URI:        https://allroundcontrol.nl
  * Description:       Genereert dagelijks automatisch nieuwsberichten over de diensten van AllroundControl via de Claude AI API. Inclusief automatische uitgelichte afbeelding via Pexels.
- * Version:           1.5.0
+ * Version:           1.6.0
  * Author:            AllroundControl
  * Author URI:        https://allroundcontrol.nl
  * License:           GPL-2.0+
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'ARC_NIEUWS_VERSION',     '1.5.0' );
+define( 'ARC_NIEUWS_VERSION',     '1.6.0' );
 define( 'ARC_NIEUWS_OPTION_KEY',  'arc_nieuws_settings' );
 define( 'ARC_NIEUWS_CRON_HOOK',   'arc_nieuws_dagelijks_bericht' );
 define( 'ARC_NIEUWS_PLUGIN_SLUG', 'allroundcontrol-nieuws-generator/allroundcontrol-nieuws-generator.php' );
