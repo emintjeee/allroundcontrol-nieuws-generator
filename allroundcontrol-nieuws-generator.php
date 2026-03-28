@@ -3,7 +3,7 @@
  * Plugin Name:       AllroundControl Nieuws Generator
  * Plugin URI:        https://allroundcontrol.nl
  * Description:       Genereert dagelijks automatisch nieuwsberichten over de diensten van AllroundControl via de Claude AI API. Inclusief automatische uitgelichte afbeelding via Pexels.
- * Version:           1.3.0
+ * Version:           1.4.0
  * Author:            AllroundControl
  * Author URI:        https://allroundcontrol.nl
  * License:           GPL-2.0+
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-define( 'ARC_NIEUWS_VERSION',     '1.3.0' );
+define( 'ARC_NIEUWS_VERSION',     '1.4.0' );
 define( 'ARC_NIEUWS_OPTION_KEY',  'arc_nieuws_settings' );
 define( 'ARC_NIEUWS_CRON_HOOK',   'arc_nieuws_dagelijks_bericht' );
 define( 'ARC_NIEUWS_PLUGIN_SLUG', 'allroundcontrol-nieuws-generator/allroundcontrol-nieuws-generator.php' );
@@ -1046,12 +1046,15 @@ class ARC_Nieuws_Updater {
         $nieuwste_versie = ltrim( $release['tag_name'], 'vV' );
 
         if ( version_compare( $nieuwste_versie, $this->version, '>' ) ) {
+            // Directe ZIP-URL (geen API-redirect nodig, werkt altijd voor publieke repos)
+            $zip_url = 'https://github.com/' . $this->github_repo . '/archive/refs/tags/' . $release['tag_name'] . '.zip';
+
             $transient->response[ $this->plugin_slug ] = (object) array(
                 'slug'        => dirname( $this->plugin_slug ),
                 'plugin'      => $this->plugin_slug,
                 'new_version' => $nieuwste_versie,
                 'url'         => 'https://github.com/' . $this->github_repo,
-                'package'     => $release['zipball_url'] ?? '',
+                'package'     => $zip_url,
                 'icons'       => array(),
                 'banners'     => array(),
                 'tested'      => get_bloginfo( 'version' ),
@@ -1094,7 +1097,7 @@ class ARC_Nieuws_Updater {
                 'description' => $release['body'] ?? 'Dagelijkse nieuwsberichten generator voor AllroundControl.',
                 'changelog'   => '<p>' . nl2br( esc_html( $release['body'] ?? '' ) ) . '</p>',
             ),
-            'download_link' => $release['zipball_url'] ?? '',
+            'download_link' => 'https://github.com/' . $this->github_repo . '/archive/refs/tags/' . ( $release['tag_name'] ?? '' ) . '.zip',
         );
     }
 
@@ -1107,13 +1110,19 @@ class ARC_Nieuws_Updater {
             return $source;
         }
 
-        $juiste_map = trailingslashit( $remote_source ) . dirname( $this->plugin_slug );
+        global $wp_filesystem;
+        $plugin_map  = dirname( $this->plugin_slug ); // bijv. "allroundcontrol-nieuws-generator"
+        $juiste_map  = trailingslashit( $remote_source ) . $plugin_map;
 
-        if ( $source !== $juiste_map ) {
-            global $wp_filesystem;
-            if ( $wp_filesystem->move( $source, $juiste_map ) ) {
-                return trailingslashit( $juiste_map );
-            }
+        // Al correct
+        if ( trailingslashit( $source ) === trailingslashit( $juiste_map ) ) {
+            return $source;
+        }
+
+        // GitHub archive ZIP levert een map als "repo-v1.3.0" of "repo-1.3.0"
+        // $source is het pad dat WordPress al heeft uitgepakt
+        if ( $wp_filesystem->move( $source, $juiste_map ) ) {
+            return trailingslashit( $juiste_map );
         }
 
         return $source;
