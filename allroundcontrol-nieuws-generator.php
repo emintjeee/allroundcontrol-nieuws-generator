@@ -136,196 +136,508 @@ function arc_nieuws_instellingen_pagina() {
     $gebruikers  = get_users( array( 'role__in' => array( 'administrator', 'editor', 'author' ) ) );
     $categorieen = get_categories( array( 'hide_empty' => false ) );
     $modellen    = array(
-        'claude-haiku-4-5'   => 'Claude Haiku 4.5 (snel &amp; voordelig)',
-        'claude-sonnet-4-6'  => 'Claude Sonnet 4.6 (uitgebreid)',
-        'claude-opus-4-6'    => 'Claude Opus 4.6 (beste kwaliteit)',
+        'claude-haiku-4-5'  => array( 'label' => 'Claude Haiku 4.5', 'sub' => 'Snel &amp; voordelig', 'icon' => '⚡' ),
+        'claude-sonnet-4-6' => array( 'label' => 'Claude Sonnet 4.6', 'sub' => 'Uitgebreide kwaliteit', 'icon' => '✦' ),
+        'claude-opus-4-6'   => array( 'label' => 'Claude Opus 4.6', 'sub' => 'Beste kwaliteit', 'icon' => '★' ),
     );
+    $huidig_onderwerp = arc_nieuws_get_huidig_onderwerp();
+    $alle_onderwerpen = arc_nieuws_get_onderwerpen();
     ?>
-    <div class="wrap">
-        <h1>AllroundControl Nieuws Generator</h1>
-        <?php echo wp_kses_post( $bericht ); ?>
+    <style>
+        /* ── Reset & basis ───────────────────────── */
+        #arc-wrap * { box-sizing: border-box; }
+        #arc-wrap { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1e293b; }
 
-        <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;margin-top:16px;">
+        /* ── Header banner ───────────────────────── */
+        .arc-header {
+            background: linear-gradient(135deg, #1e40af 0%, #4f46e5 50%, #7c3aed 100%);
+            border-radius: 16px;
+            padding: 32px 36px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 32px rgba(79,70,229,.25);
+        }
+        .arc-header-left h1 {
+            color: #fff !important;
+            font-size: 24px !important;
+            font-weight: 700 !important;
+            margin: 0 0 4px !important;
+            padding: 0 !important;
+            line-height: 1.2 !important;
+            text-shadow: 0 1px 3px rgba(0,0,0,.2);
+        }
+        .arc-header-left p { color: rgba(255,255,255,.75); margin: 0; font-size: 14px; }
+        .arc-version-badge {
+            background: rgba(255,255,255,.15);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,.25);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .5px;
+            backdrop-filter: blur(4px);
+        }
 
-            <!-- Instellingenformulier -->
+        /* ── Notificaties ────────────────────────── */
+        .arc-alert {
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: none !important;
+        }
+        .arc-alert-success { background: #f0fdf4; border-left: 4px solid #22c55e !important; color: #166534; }
+        .arc-alert-error   { background: #fef2f2; border-left: 4px solid #ef4444 !important; color: #991b1b; }
+        .arc-alert .arc-alert-icon { font-size: 18px; flex-shrink: 0; }
+
+        /* ── Grid layout ─────────────────────────── */
+        .arc-grid { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+
+        /* ── Cards ───────────────────────────────── */
+        .arc-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .arc-card-header {
+            padding: 18px 24px 14px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .arc-card-header h2 {
+            font-size: 15px !important;
+            font-weight: 600 !important;
+            color: #1e293b !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .arc-card-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .arc-card-icon.blue   { background: #eff6ff; }
+        .arc-card-icon.purple { background: #f5f3ff; }
+        .arc-card-icon.green  { background: #f0fdf4; }
+        .arc-card-icon.orange { background: #fff7ed; }
+        .arc-card-body { padding: 20px 24px; }
+
+        /* ── Formulier ───────────────────────────── */
+        .arc-field-group { margin-bottom: 20px; }
+        .arc-field-group:last-child { margin-bottom: 0; }
+        .arc-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        .arc-label span { font-weight: 400; color: #6b7280; }
+        .arc-input, .arc-select {
+            width: 100%;
+            padding: 9px 13px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1e293b;
+            background: #fff;
+            transition: border-color .15s, box-shadow .15s;
+            outline: none;
+        }
+        .arc-input:focus, .arc-select:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+        }
+        .arc-hint { font-size: 12px; color: #94a3b8; margin-top: 5px; }
+        .arc-hint a { color: #6366f1; text-decoration: none; }
+        .arc-hint a:hover { text-decoration: underline; }
+
+        /* ── Model kiezer ────────────────────────── */
+        .arc-model-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+        .arc-model-option { display: none; }
+        .arc-model-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all .15s;
+            text-align: center;
+            user-select: none;
+        }
+        .arc-model-card:hover { border-color: #a5b4fc; background: #fafafa; }
+        .arc-model-option:checked + .arc-model-card {
+            border-color: #6366f1;
+            background: #f5f3ff;
+            box-shadow: 0 0 0 3px rgba(99,102,241,.1);
+        }
+        .arc-model-card .arc-model-icon { font-size: 22px; margin-bottom: 4px; }
+        .arc-model-card .arc-model-name { font-size: 12px; font-weight: 600; color: #1e293b; }
+        .arc-model-card .arc-model-sub  { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+        /* ── Toggle schakelaar ───────────────────── */
+        .arc-toggle-wrap { display: flex; align-items: center; gap: 12px; }
+        .arc-toggle { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .arc-toggle input { opacity: 0; width: 0; height: 0; }
+        .arc-slider {
+            position: absolute; inset: 0;
+            background: #cbd5e1; border-radius: 24px; cursor: pointer;
+            transition: background .2s;
+        }
+        .arc-slider:before {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            left: 3px; bottom: 3px;
+            background: #fff; border-radius: 50%;
+            transition: transform .2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,.2);
+        }
+        .arc-toggle input:checked + .arc-slider { background: #6366f1; }
+        .arc-toggle input:checked + .arc-slider:before { transform: translateX(20px); }
+        .arc-toggle-label { font-size: 14px; color: #374151; }
+
+        /* ── Opslaan knop ────────────────────────── */
+        .arc-btn-save {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: #fff !important;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s, transform .1s;
+            margin-top: 4px;
+            box-shadow: 0 4px 12px rgba(99,102,241,.3);
+            text-align: center;
+        }
+        .arc-btn-save:hover { opacity: .92; transform: translateY(-1px); }
+        .arc-btn-save:active { transform: translateY(0); }
+
+        /* ── Status badges ───────────────────────── */
+        .arc-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 20px;
+            font-size: 12px; font-weight: 600;
+        }
+        .arc-badge-green  { background: #dcfce7; color: #15803d; }
+        .arc-badge-red    { background: #fee2e2; color: #b91c1c; }
+        .arc-badge-gray   { background: #f1f5f9; color: #64748b; }
+        .arc-badge-blue   { background: #dbeafe; color: #1d4ed8; }
+
+        /* ── Status rijen ────────────────────────── */
+        .arc-status-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+        }
+        .arc-status-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .arc-status-label { color: #64748b; font-weight: 500; }
+
+        /* ── Genereer knop ───────────────────────── */
+        .arc-btn-generate {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #0f172a, #1e40af);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity .15s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(30,64,175,.25);
+        }
+        .arc-btn-generate:hover { opacity: .88; }
+
+        /* ── Onderwerpen pills ───────────────────── */
+        .arc-topics { display: flex; flex-wrap: wrap; gap: 6px; }
+        .arc-topic-pill {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #475569;
+            transition: all .15s;
+        }
+        .arc-topic-pill.active {
+            background: #f5f3ff;
+            border-color: #a5b4fc;
+            color: #4f46e5;
+            font-weight: 600;
+        }
+
+        /* ── Update knop ─────────────────────────── */
+        .arc-btn-update {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 12px; font-weight: 600;
+            color: #374151;
+            cursor: pointer; text-decoration: none;
+            transition: all .15s; margin-top: 8px;
+        }
+        .arc-btn-update:hover { background: #f1f5f9; border-color: #cbd5e1; color: #1e293b; }
+
+        /* ── Volgende tijd ───────────────────────── */
+        .arc-next-time {
+            font-size: 12px; color: #94a3b8; margin-top: 3px;
+        }
+    </style>
+
+    <div class="wrap" id="arc-wrap">
+
+        <!-- Header -->
+        <div class="arc-header">
+            <div class="arc-header-left">
+                <h1>⚡ Nieuws Generator</h1>
+                <p>Dagelijkse AI-nieuwsberichten voor AllroundControl</p>
+            </div>
+            <div class="arc-version-badge">v<?php echo esc_html( ARC_NIEUWS_VERSION ); ?></div>
+        </div>
+
+        <!-- Notificaties -->
+        <?php if ( $bericht ) :
+            $is_error = strpos( $bericht, 'notice-error' ) !== false;
+            $tekst    = wp_strip_all_tags( $bericht );
+            $tekst    = preg_replace( '/Fout:\s*/', '', $tekst );
+        ?>
+        <div class="arc-alert <?php echo $is_error ? 'arc-alert-error' : 'arc-alert-success'; ?>">
+            <span class="arc-alert-icon"><?php echo $is_error ? '✕' : '✓'; ?></span>
+            <span><?php echo wp_kses( $bericht, array( 'a' => array( 'href' => array() ) ) ); ?></span>
+        </div>
+        <?php endif; ?>
+
+        <div class="arc-grid">
+
+            <!-- Linker kolom: instellingen -->
             <div>
                 <form method="post">
                     <?php wp_nonce_field( 'arc_nieuws_opslaan', 'arc_nieuws_nonce' ); ?>
-                    <table class="form-table" role="presentation">
-                        <tr>
-                            <th scope="row"><label for="api_key">Anthropic API-sleutel</label></th>
-                            <td>
-                                <input type="password" id="api_key" name="api_key"
-                                    value="<?php echo esc_attr( $settings['api_key'] ); ?>"
-                                    class="regular-text" autocomplete="off" />
-                                <p class="description">Haal je sleutel op via <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a></p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label for="pexels_api_key">Pexels API-sleutel <span style="font-weight:400;">(afbeeldingen)</span></label></th>
-                            <td>
-                                <input type="password" id="pexels_api_key" name="pexels_api_key"
-                                    value="<?php echo esc_attr( $settings['pexels_api_key'] ); ?>"
-                                    class="regular-text" autocomplete="off" />
-                                <p class="description">
-                                    Gratis aan te maken via <a href="https://www.pexels.com/api/" target="_blank" rel="noopener">pexels.com/api</a>.
-                                    Zonder sleutel wordt er geen uitgelichte afbeelding toegevoegd.
-                                </p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label for="github_repo">GitHub repository</label></th>
-                            <td>
-                                <input type="text" id="github_repo" name="github_repo"
+
+                    <!-- API Sleutels -->
+                    <div class="arc-card">
+                        <div class="arc-card-header">
+                            <div class="arc-card-icon blue">🔑</div>
+                            <h2>API-sleutels</h2>
+                        </div>
+                        <div class="arc-card-body">
+                            <div class="arc-field-group">
+                                <label class="arc-label" for="api_key">Anthropic API-sleutel</label>
+                                <input type="password" id="api_key" name="api_key" class="arc-input"
+                                    value="<?php echo esc_attr( $settings['api_key'] ); ?>" autocomplete="off"
+                                    placeholder="sk-ant-..." />
+                                <p class="arc-hint">Aanmaken via <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a></p>
+                            </div>
+                            <div class="arc-field-group">
+                                <label class="arc-label" for="pexels_api_key">Pexels API-sleutel <span>(uitgelichte afbeeldingen)</span></label>
+                                <input type="password" id="pexels_api_key" name="pexels_api_key" class="arc-input"
+                                    value="<?php echo esc_attr( $settings['pexels_api_key'] ); ?>" autocomplete="off"
+                                    placeholder="Gratis via pexels.com/api" />
+                                <p class="arc-hint">Gratis account via <a href="https://www.pexels.com/api/" target="_blank" rel="noopener">pexels.com/api</a></p>
+                            </div>
+                            <div class="arc-field-group" style="margin-bottom:0;">
+                                <label class="arc-label" for="github_repo">GitHub repository <span>(auto-updates)</span></label>
+                                <input type="text" id="github_repo" name="github_repo" class="arc-input"
                                     value="<?php echo esc_attr( $settings['github_repo'] ); ?>"
-                                    class="regular-text" placeholder="gebruikersnaam/allroundcontrol-nieuws-generator" />
-                                <p class="description">
-                                    Vul in als <code>gebruikersnaam/repository-naam</code>. Zodra je een nieuwe versie op GitHub plaatst verschijnt de update automatisch in WordPress.
-                                </p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label for="model">AI-model</label></th>
-                            <td>
-                                <select id="model" name="model">
-                                    <?php foreach ( $modellen as $waarde => $label ) : ?>
-                                        <option value="<?php echo esc_attr( $waarde ); ?>" <?php selected( $settings['model'], $waarde ); ?>>
-                                            <?php echo wp_kses_post( $label ); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label for="auteur_id">Auteur</label></th>
-                            <td>
-                                <select id="auteur_id" name="auteur_id">
-                                    <?php foreach ( $gebruikers as $gebruiker ) : ?>
-                                        <option value="<?php echo esc_attr( $gebruiker->ID ); ?>" <?php selected( $settings['auteur_id'], $gebruiker->ID ); ?>>
-                                            <?php echo esc_html( $gebruiker->display_name ); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label for="categorie_id">Categorie</label></th>
-                            <td>
-                                <select id="categorie_id" name="categorie_id">
-                                    <option value="0">— Geen categorie —</option>
-                                    <?php foreach ( $categorieen as $cat ) : ?>
-                                        <option value="<?php echo esc_attr( $cat->term_id ); ?>" <?php selected( $settings['categorie_id'], $cat->term_id ); ?>>
-                                            <?php echo esc_html( $cat->name ); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label for="post_status">Status bericht</label></th>
-                            <td>
-                                <select id="post_status" name="post_status">
-                                    <option value="publish" <?php selected( $settings['post_status'], 'publish' ); ?>>Publiceren</option>
-                                    <option value="draft" <?php selected( $settings['post_status'], 'draft' ); ?>>Concept (handmatig controleren)</option>
-                                </select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row"><label for="uur">Publicatietijdstip</label></th>
-                            <td>
-                                <select id="uur" name="uur">
-                                    <?php for ( $h = 0; $h < 24; $h++ ) : ?>
-                                        <option value="<?php echo esc_attr( $h ); ?>" <?php selected( $settings['uur'], $h ); ?>>
-                                            <?php echo esc_html( sprintf( '%02d:00', $h ) ); ?>
-                                        </option>
-                                    <?php endfor; ?>
-                                </select>
-                                <p class="description">Servertijd (UTC). Huidige servertijd: <?php echo esc_html( gmdate( 'H:i' ) ); ?> UTC</p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row">Inschakelen</th>
-                            <td>
-                                <label>
-                                    <input type="checkbox" name="ingeschakeld" value="1" <?php checked( $settings['ingeschakeld'], 1 ); ?> />
-                                    Dagelijks automatisch een bericht genereren
-                                </label>
-                            </td>
-                        </tr>
-                    </table>
-                    <?php submit_button( 'Instellingen opslaan' ); ?>
+                                    placeholder="gebruikersnaam/allroundcontrol-nieuws-generator" />
+                                <p class="arc-hint">Format: <code>gebruikersnaam/repository</code></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI-model -->
+                    <div class="arc-card">
+                        <div class="arc-card-header">
+                            <div class="arc-card-icon purple">🤖</div>
+                            <h2>AI-model</h2>
+                        </div>
+                        <div class="arc-card-body">
+                            <div class="arc-model-grid">
+                                <?php foreach ( $modellen as $waarde => $info ) : ?>
+                                    <label>
+                                        <input type="radio" name="model" value="<?php echo esc_attr( $waarde ); ?>"
+                                            class="arc-model-option" <?php checked( $settings['model'], $waarde ); ?>>
+                                        <div class="arc-model-card">
+                                            <div class="arc-model-icon"><?php echo esc_html( $info['icon'] ); ?></div>
+                                            <div class="arc-model-name"><?php echo esc_html( $info['label'] ); ?></div>
+                                            <div class="arc-model-sub"><?php echo wp_kses_post( $info['sub'] ); ?></div>
+                                        </div>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Publicatie-instellingen -->
+                    <div class="arc-card">
+                        <div class="arc-card-header">
+                            <div class="arc-card-icon green">📝</div>
+                            <h2>Publicatie-instellingen</h2>
+                        </div>
+                        <div class="arc-card-body">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                                <div class="arc-field-group" style="margin:0;">
+                                    <label class="arc-label" for="auteur_id">Auteur</label>
+                                    <select id="auteur_id" name="auteur_id" class="arc-select">
+                                        <?php foreach ( $gebruikers as $g ) : ?>
+                                            <option value="<?php echo esc_attr( $g->ID ); ?>" <?php selected( $settings['auteur_id'], $g->ID ); ?>>
+                                                <?php echo esc_html( $g->display_name ); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="arc-field-group" style="margin:0;">
+                                    <label class="arc-label" for="categorie_id">Categorie</label>
+                                    <select id="categorie_id" name="categorie_id" class="arc-select">
+                                        <option value="0">— Geen —</option>
+                                        <?php foreach ( $categorieen as $cat ) : ?>
+                                            <option value="<?php echo esc_attr( $cat->term_id ); ?>" <?php selected( $settings['categorie_id'], $cat->term_id ); ?>>
+                                                <?php echo esc_html( $cat->name ); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="arc-field-group" style="margin:0;">
+                                    <label class="arc-label" for="post_status">Status</label>
+                                    <select id="post_status" name="post_status" class="arc-select">
+                                        <option value="publish" <?php selected( $settings['post_status'], 'publish' ); ?>>✓ Publiceren</option>
+                                        <option value="draft"   <?php selected( $settings['post_status'], 'draft' ); ?>>✎ Concept</option>
+                                    </select>
+                                </div>
+                                <div class="arc-field-group" style="margin:0;">
+                                    <label class="arc-label" for="uur">Tijdstip</label>
+                                    <select id="uur" name="uur" class="arc-select">
+                                        <?php for ( $h = 0; $h < 24; $h++ ) : ?>
+                                            <option value="<?php echo esc_attr( $h ); ?>" <?php selected( $settings['uur'], $h ); ?>>
+                                                <?php echo esc_html( sprintf( '%02d:00', $h ) ); ?>
+                                            </option>
+                                        <?php endfor; ?>
+                                    </select>
+                                    <p class="arc-hint">Servertijd (UTC <?php echo esc_html( gmdate( 'H:i' ) ); ?>)</p>
+                                </div>
+                            </div>
+                            <div style="margin-top:20px;padding-top:16px;border-top:1px solid #f1f5f9;">
+                                <div class="arc-toggle-wrap">
+                                    <label class="arc-toggle">
+                                        <input type="checkbox" name="ingeschakeld" value="1" <?php checked( $settings['ingeschakeld'], 1 ); ?> />
+                                        <span class="arc-slider"></span>
+                                    </label>
+                                    <span class="arc-toggle-label">Dagelijks automatisch een bericht genereren</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="arc-btn-save">💾 &nbsp;Instellingen opslaan</button>
                 </form>
             </div>
 
-            <!-- Zijpaneel -->
+            <!-- Rechter kolom: status & acties -->
             <div>
+
                 <!-- Status -->
-                <div class="postbox">
-                    <div class="postbox-header"><h2 class="hndle">Status</h2></div>
-                    <div class="inside">
-                        <p>
-                            <strong>Scheduler:</strong>
+                <div class="arc-card">
+                    <div class="arc-card-header">
+                        <div class="arc-card-icon blue">📊</div>
+                        <h2>Status</h2>
+                    </div>
+                    <div class="arc-card-body" style="padding-top:12px;padding-bottom:12px;">
+                        <div class="arc-status-row">
+                            <span class="arc-status-label">Scheduler</span>
                             <?php if ( $volgende ) : ?>
-                                <span style="color:green;">&#10003; Actief</span><br>
-                                Volgend bericht: <?php echo esc_html( wp_date( 'd-m-Y H:i', $volgende ) ); ?>
+                                <div>
+                                    <span class="arc-badge arc-badge-green">● Actief</span>
+                                    <div class="arc-next-time">⏰ <?php echo esc_html( wp_date( 'd-m-Y H:i', $volgende ) ); ?></div>
+                                </div>
                             <?php else : ?>
-                                <span style="color:#cc0000;">&#10007; Inactief</span>
+                                <span class="arc-badge arc-badge-red">● Inactief</span>
                             <?php endif; ?>
-                        </p>
-                        <p>
-                            <strong>Auto-updates:</strong>
-                            <?php if ( ! empty( $settings['github_repo'] ) ) : ?>
-                                <span style="color:green;">&#10003; GitHub actief</span><br>
-                                <small><?php echo esc_html( $settings['github_repo'] ); ?></small><br><br>
-                                <?php if ( isset( $_GET['arc_cache_cleared'] ) ) : ?>
-                                    <span style="color:green;">✓ Cache geleegd, WordPress controleert nu op updates.</span><br><br>
-                                <?php endif; ?>
-                                <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'options-general.php?page=arc-nieuws-generator&arc_clear_cache=1' ), 'arc_clear_cache' ) ); ?>"
-                                   class="button button-small">↺ Forceer update check</a>
-                            <?php else : ?>
-                                <span style="color:#888;">— Niet ingesteld</span>
-                            <?php endif; ?>
-                        </p>
-                        <p>
-                            <strong>Afbeeldingen:</strong>
+                        </div>
+                        <div class="arc-status-row">
+                            <span class="arc-status-label">Afbeeldingen</span>
                             <?php if ( ! empty( $settings['pexels_api_key'] ) ) : ?>
-                                <span style="color:green;">&#10003; Pexels actief</span>
+                                <span class="arc-badge arc-badge-green">● Pexels</span>
                             <?php else : ?>
-                                <span style="color:#cc0000;">&#10007; Geen Pexels sleutel</span>
+                                <span class="arc-badge arc-badge-gray">Niet ingesteld</span>
                             <?php endif; ?>
-                        </p>
-                        <p><strong>Huidig onderwerp:</strong><br>
-                            <?php echo esc_html( arc_nieuws_get_huidig_onderwerp() ); ?>
-                        </p>
+                        </div>
+                        <div class="arc-status-row">
+                            <span class="arc-status-label">Auto-updates</span>
+                            <?php if ( ! empty( $settings['github_repo'] ) ) : ?>
+                                <span class="arc-badge arc-badge-blue">● GitHub</span>
+                            <?php else : ?>
+                                <span class="arc-badge arc-badge-gray">Niet ingesteld</span>
+                            <?php endif; ?>
+                        </div>
+                        <?php if ( ! empty( $settings['github_repo'] ) ) : ?>
+                        <div style="padding-top:8px;">
+                            <?php if ( isset( $_GET['arc_cache_cleared'] ) ) : ?>
+                                <p style="font-size:12px;color:#15803d;margin:0 0 8px;">✓ Cache geleegd.</p>
+                            <?php endif; ?>
+                            <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'options-general.php?page=arc-nieuws-generator&arc_clear_cache=1' ), 'arc_clear_cache' ) ); ?>"
+                               class="arc-btn-update">↺ Forceer update check</a>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
-                <!-- Handmatig genereren -->
-                <div class="postbox" style="margin-top:16px;">
-                    <div class="postbox-header"><h2 class="hndle">Nu genereren</h2></div>
-                    <div class="inside">
-                        <p>Genereer direct een testbericht zonder te wachten op de dagelijkse planning.</p>
+                <!-- Nu genereren -->
+                <div class="arc-card">
+                    <div class="arc-card-header">
+                        <div class="arc-card-icon orange">✨</div>
+                        <h2>Nu genereren</h2>
+                    </div>
+                    <div class="arc-card-body">
+                        <p style="font-size:13px;color:#64748b;margin:0 0 14px;">
+                            Volgende onderwerp: <strong style="color:#4f46e5;"><?php echo esc_html( $huidig_onderwerp ); ?></strong>
+                        </p>
                         <form method="post">
                             <?php wp_nonce_field( 'arc_nieuws_genereer', 'arc_nieuws_genereer_nonce' ); ?>
-                            <?php submit_button( 'Genereer nu', 'secondary', 'submit', false ); ?>
+                            <button type="submit" class="arc-btn-generate">
+                                <span>⚡</span> Genereer bericht
+                            </button>
                         </form>
                     </div>
                 </div>
 
                 <!-- Onderwerpen -->
-                <div class="postbox" style="margin-top:16px;">
-                    <div class="postbox-header"><h2 class="hndle">Onderwerpen</h2></div>
-                    <div class="inside">
-                        <p style="margin-top:0;">Onderwerpen rouleren dagelijks:</p>
-                        <ol style="margin-left:16px;">
-                            <?php foreach ( arc_nieuws_get_onderwerpen() as $onderwerp ) : ?>
-                                <li><?php echo esc_html( $onderwerp['naam'] ); ?></li>
+                <div class="arc-card">
+                    <div class="arc-card-header">
+                        <div class="arc-card-icon purple">🗂</div>
+                        <h2>Onderwerpen</h2>
+                    </div>
+                    <div class="arc-card-body">
+                        <div class="arc-topics">
+                            <?php foreach ( $alle_onderwerpen as $onderwerp ) : ?>
+                                <span class="arc-topic-pill <?php echo ( $onderwerp['naam'] === $huidig_onderwerp ) ? 'active' : ''; ?>">
+                                    <?php echo esc_html( $onderwerp['naam'] ); ?>
+                                </span>
                             <?php endforeach; ?>
-                        </ol>
+                        </div>
+                        <p class="arc-hint" style="margin-top:12px;">Het gemarkeerde onderwerp wordt als volgende gebruikt.</p>
                     </div>
                 </div>
-            </div>
 
+            </div>
         </div><!-- /grid -->
     </div>
     <?php
